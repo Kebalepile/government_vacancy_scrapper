@@ -1,0 +1,22 @@
+{
+  "name": "government_job_vacancy_scrapper",
+  "version": "1.0.0",
+  "description": "Collects information on available job vacancies from government websites.",
+  "main": "crawl.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kebalepile/government_vacancy_scrapper.git"
+  },
+  "author": "K.T Motshoana",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Kebalepile/government_vacancy_scrapper/issues"
+  },
+  "homepage": "https://github.com/Kebalepile/government_vacancy_scrapper#readme",
+  "dependencies": {
+    "puppeteer": "^20.7.4"
+  }
+}
