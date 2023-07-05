@@ -6,7 +6,10 @@ import puppeteer from "puppeteer";
  */
 export class PublicJobSpider {
   #name = "public jobs";
-  #allowedDomains = ["https://www.govpage.co.za/"];
+  #allowedDomains = [
+    "https://www.govpage.co.za/",
+    "https://www.govpage.co.za/latest-govpage-updates",
+  ];
   constructor() {
     this.browser = null;
   }
@@ -14,7 +17,8 @@ export class PublicJobSpider {
     try {
       this.browser = await puppeteer.launch({
         headless: false,
-        executablePath:"C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+        executablePath:
+          "C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
       });
       await this.crawl();
     } catch (error) {
@@ -38,7 +42,7 @@ export class PublicJobSpider {
         }
 
         const menu = await page.$('*[aria-label="Menu"]');
-        menu.click();
+        menu?.click();
         const elements = await page.$$(
           "ul li.wsite-menu-item-wrap a.wsite-menu-item"
         );
@@ -51,9 +55,8 @@ export class PublicJobSpider {
           textContent.includes("updates") && (targetElement = element);
         }
         if (targetElement) {
-          console.log(targetElement)
           await targetElement.click();
-       
+          await this.#latestUpdates(page);
         }
       }
     } catch (error) {
@@ -66,6 +69,82 @@ export class PublicJobSpider {
         this.browser.close();
         await this.launch();
       }
+    }
+  }
+  /***
+   * @param {Object} page
+   * @description Get's currenly advertised government jobs for the current day.
+   */
+  async #latestUpdates(page) {
+    try {
+      const updates = async () => {
+        if (page.url().includes(this.#allowedDomains[1])) {
+          clearInterval(intervalId);
+
+          const currentDate = this.#date("date")
+            .toUpperCase()
+            .replaceAll("-", " ");
+          page.waitForNavigation();
+          const elementHandles = await page.$$(".blog-title-link");
+
+          const targetHandle = await elementHandles.reduce(
+            async (targetHandle, elementHandle) => {
+              const textContent = await page.evaluate(
+                (elem) => elem.textContent,
+                elementHandle
+              );
+              if (textContent.includes(currentDate)) {
+                targetHandle = elementHandle;
+                return targetHandle;
+              }
+              return targetHandle;
+            },
+            null
+          );
+         
+          console.log(targetHandle);
+          await targetHandle?.click();
+        }
+      };
+
+      const intervalId = setInterval(() => {
+        updates();
+      }, 5000);
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+  /***
+   * @description Get's  the current date and time.
+   * @returns date string
+   *
+   */
+  #date(type = "") {
+    try {
+      const pad = (num) => num.toString().padStart(2, "0"),
+        date = new Date(),
+        year = date.getFullYear(),
+        month = date.toLocaleString("default", { month: "long" }),
+        day = date.getDate(),
+        hour = date.getHours(),
+        minute = date.getMinutes(),
+        second = date.getSeconds();
+
+      const currentDate = `${day}-${pad(month)}-${pad(year)}`;
+      const currentTime = ` ${pad(hour)}:${pad(minute)}:${pad(second)}`;
+      switch (type.trim().toLowerCase()) {
+        case "date":
+          return currentDate;
+        case "time":
+          return currentTime;
+        default:
+          return {
+            date: currentDate,
+            time: currentTime,
+          };
+      }
+    } catch (error) {
+      console.log(error.message);
     }
   }
 }
