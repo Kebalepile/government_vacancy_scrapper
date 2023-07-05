@@ -14,10 +14,11 @@ export class PublicJobSpider {
     try {
       this.browser = await puppeteer.launch({
         headless: false,
+        executablePath:"C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
       });
       await this.crawl();
     } catch (error) {
-      consoole.log(error);
+      console.log(error);
     }
   }
   async crawl() {
@@ -50,48 +51,21 @@ export class PublicJobSpider {
           textContent.includes("updates") && (targetElement = element);
         }
         if (targetElement) {
+          console.log(targetElement)
           await targetElement.click();
-          page.waitForNavigation();
-          const newUrl = page.url();
-          if (newUrl !== this.#allowedDomains[0]) {
-            console.log("URL has changed:", newUrl);
-          }
-
-          const { width, height } = await page.evaluate(() => ({
-            width: window.innerWidth,
-            height: window.innerHeight,
-          }));
-
-          const centerX = Math.floor(width / 2);
-          const centerY = Math.floor(height / 2);
-
-          await page.mouse.click(centerX, centerY);
-
-          //   // Wait for the URL to change
-
-          //   // Click on the #dismiss-button element if it exists
-          //   const adModalCloseButton = await page.$("#dismiss-button");
-          //   const adModalVisible =
-          //     await adModalCloseButton.isIntersectingViewport();
-          //   if (adModalVisible) {
-          //     adModalCloseButton.click();
-          //   }
-
-          //   if (adModal) {
-          //     await adModal.click();
-          //   }
-
-          //   // Wait for the URL to change
-          //   await page.waitForNavigation();
-
-          //   // Check if the URL has changed
+       
         }
       }
     } catch (error) {
       console.log(error.message);
-      //   console.log(error);
-    } finally {
-      //   this.browser.close();
+      if (
+        error.message == "Navigation timeout of 100000 ms exceeded" ||
+        error.message ==
+          "Cannot read properties of null (reading 'isIntersectingViewport')"
+      ) {
+        this.browser.close();
+        await this.launch();
+      }
     }
   }
 }
