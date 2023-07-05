@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Collects information on available job vacancies from government websites.",
   "main": "crawl.js",
-  "type":"module",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "scrape":"node crawl.js"
+    "scrape": "node crawl.js"
   },
   "repository": {
     "type": "git",
