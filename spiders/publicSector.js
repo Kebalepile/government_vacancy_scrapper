@@ -1,5 +1,7 @@
 import puppeteer from "puppeteer";
-
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 /**
  * @description scrapes latest jobs advertised in public sector
  * by the Governement.
@@ -13,10 +15,19 @@ export class PublicJobSpider {
   constructor() {
     this.browser = null;
   }
+  /**
+   * @param {String} file
+   * @returns String: file path
+   */
+  #databasePath(file = "none") {
+    const currentFilePath = fileURLToPath(import.meta.url);
+    const directoryPath = path.dirname(currentFilePath);
+    return path.join(directoryPath, "..", "database", `${file}.json`);
+  }
   async launch() {
     try {
       this.browser = await puppeteer.launch({
-        headless: false,
+        headless: "new",
         executablePath:
           "C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
       });
@@ -61,12 +72,14 @@ export class PublicJobSpider {
       }
     } catch (error) {
       console.log(error.message);
-      if (
-        error.message == "Navigation timeout of 100000 ms exceeded" ||
-        error.message ==
-          "Cannot read properties of null (reading 'isIntersectingViewport')"
-      ) {
+      const errors = [
+        "Node is either not clickable or not an HTMLElement",
+        "Navigation timeout of 100000 ms exceeded",
+        "Cannot read properties of null (reading 'isIntersectingViewport')",
+      ];
+      if (errors.includes(error.message)) {
         console.log(`${this.#name} restarting`);
+        console.clear();
         this.browser.close();
         await this.launch();
       }
@@ -85,7 +98,9 @@ export class PublicJobSpider {
           const currentDate = this.#date("date")
             .toUpperCase()
             .replaceAll("-", " ");
+
           page.waitForNavigation();
+
           const elementHandles = await page.$$(".blog-title-link");
 
           const targetHandle = await elementHandles.reduce(
@@ -107,6 +122,23 @@ export class PublicJobSpider {
             await targetHandle?.click();
 
             await this.#advertLinks(page);
+          } else {
+            fs.writeFile(
+              this.#databasePath(this.#date("date")),
+              JSON.stringify(
+                {
+                  text: "No job posts for today",
+                  date: this.#date("date"),
+                },
+                null,
+                4
+              ),
+              (error) =>
+                error
+                  ? console.log(error.message)
+                  : console.log(`${this.#date("date")}.json save to database`)
+            );
+            this.browser.close();
           }
         }
       };
@@ -122,17 +154,56 @@ export class PublicJobSpider {
     try {
       const advertList = async () => {
         const date = this.#date("date").toLowerCase();
-        console.log("advert links method");
+
         if (page.url().includes(date)) {
-          clearInterval(intervalId);
+          const posts = {
+            list: [],
+            total: 0,
+          };
 
           const elementHandles = await page.$$("[id^='blog-post-'] a");
-          for (const elementHandle of elementHandles) {
-            const textContent = await page.evaluate(
-              (elem) => elem.textContent,
-              elementHandle
-            );
-            console.log(textContent);
+          console.log(elementHandles);
+          if (elementHandles.length) {
+            clearInterval(intervalId);
+            for (let i = 0; i < elementHandles.length; i++) {
+              const elementHandle = elementHandles[i];
+
+              const elemObject = await page.evaluate(
+                (elem) => ({
+                  text: elem.textContent.trim(),
+                  sourceLink: elem.href,
+                }),
+                elementHandle
+              );
+
+              i == 0
+                ? (posts["date"] = elemObject.text)
+                : (() => {
+                    if (elemObject.text.length) {
+                      posts["list"].push(elemObject);
+                      posts.total++;
+                    }
+                  })();
+            }
+
+            console.log(posts);
+
+            if (posts.total) {
+              fs.writeFile(
+                this.#databasePath(posts.date),
+                JSON.stringify(posts, null, 4),
+                (error) =>
+                  error
+                    ? console.log(error.message)
+                    : (() => {
+                        console.log(
+                          `Data written to ${posts.date}.json file successfully. `
+                        );
+                        console.log(`${this.#name} is disconnected.`);
+                        this.browser.close();
+                      })()
+              );
+            }
           }
         }
       };
