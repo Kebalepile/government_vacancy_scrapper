@@ -66,6 +66,7 @@ export class PublicJobSpider {
         error.message ==
           "Cannot read properties of null (reading 'isIntersectingViewport')"
       ) {
+        console.log(`${this.#name} restarting`);
         this.browser.close();
         await this.launch();
       }
@@ -101,14 +102,44 @@ export class PublicJobSpider {
             },
             null
           );
-         
-          console.log(targetHandle);
-          await targetHandle?.click();
+
+          if (targetHandle) {
+            await targetHandle?.click();
+
+            this.#advertLinks(page);
+          } 
         }
       };
 
       const intervalId = setInterval(() => {
         updates();
+      }, 5000);
+    } catch (error) {
+      console.log(error.message);
+    }
+  }
+  #advertLinks(page) {
+    try {
+      const advertList = async () => {
+        const date = this.#date("date").toLowerCase();
+
+        if (page.url().includes(date)) {
+          clearInterval(intervalId);
+          const elementHandles = await page.$x(
+            '//*[@id="blog-post-175300862913840118"]/div[3]/div[6]/strong/font[1]/a'
+          );
+          console.log(elementHandles);
+          for (const elementHandle of elementHandles) {
+            const textContent = await page.evaluate(
+              (elem) => elem.textContent,
+              elementHandle
+            );
+            console.log(textContent);
+          }
+        }
+      };
+      const intervalId = setInterval(() => {
+        advertList();
       }, 5000);
     } catch (error) {
       console.log(error.message);
