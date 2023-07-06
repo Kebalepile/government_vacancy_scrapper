@@ -106,8 +106,8 @@ export class PublicJobSpider {
           if (targetHandle) {
             await targetHandle?.click();
 
-            this.#advertLinks(page);
-          } 
+            await this.#advertLinks(page);
+          }
         }
       };
 
@@ -118,17 +118,15 @@ export class PublicJobSpider {
       console.log(error.message);
     }
   }
-  #advertLinks(page) {
+  async #advertLinks(page) {
     try {
       const advertList = async () => {
         const date = this.#date("date").toLowerCase();
-
+        console.log("advert links method");
         if (page.url().includes(date)) {
           clearInterval(intervalId);
-          const elementHandles = await page.$x(
-            '//*[@id="blog-post-175300862913840118"]/div[3]/div[6]/strong/font[1]/a'
-          );
-          console.log(elementHandles);
+
+          const elementHandles = await page.$$("[id^='blog-post-'] a");
           for (const elementHandle of elementHandles) {
             const textContent = await page.evaluate(
               (elem) => elem.textContent,
