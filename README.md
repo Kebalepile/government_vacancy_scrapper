@@ -1,11 +1,10 @@
-
 **Title:** Government Vacancy Scraper
 
 **Description:**
 
-This is a web scraper that collects job vacancies from government websites. The scraper is built with Python and Scrapy, a fast and powerful web crawling framework that makes it easy to automate the extraction of data from websites.
+This is a web scraper that collects job vacancies from government websites. The scraper is built with JavaScript in Node using Puppeteer, a fast and powerful web crawling framework that makes it easy to automate the extraction of data from websites.
 
-The scraper is designed to scrape job vacancies from government websites and extract information such as job title, department, location, salary, closing date, and other relevant details. The scraper is flexible and can be easily customized to scrape job vacancies from any government website.
+The scraper is designed to scrape job vacancies from government websites and extract information such as job advert links, department detailsand other relevant details. The scraper is flexible and can be easily customized to scrape job vacancies from any government website.
 
 The collected data can be used to build a variety of applications or tools such as a job search engine or a job aggregator. The scraped data is saved in a CSV file format, making it easy to import into spreadsheets or databases.
 
@@ -14,9 +13,9 @@ This project is open source and contributions are welcome. If you encounter any 
 **Features:**
 
 - Scrape job vacancies from government websites
-- Extract job title, department, location, salary, closing date, and other relevant details
+- Extract job advert links, department details
 - Flexible and customizable scraper
-- Save scraped data in CSV file format
+- Save scraped data in JSON file format
 - Open source project with contributions welcome
 
 **Technologies:**
@@ -28,13 +27,13 @@ This project is open source and contributions are welcome. If you encounter any 
 **Usage:**
 
 1. Clone the repository to your local machine.
-2. Install the required dependencies by running `pip install -r requirements.txt`.
-3. Customize the scraper by modifying the `settings.py` file.
-4. Run the scraper using the command `scrapy crawl <spider name> -o output.csv`.
+2. cd into project directory and `npm install`.
+3. Customize the scraper by modifying the `settings.js` file.
+4. Run the scraper using the command `npm run scrape`.
 
 **Contributing:**
 
-Contributions are welcome! Please see the `CONTRIBUTING.md` file for guidelines on how to contribute to this project.
+Contributions are welcome!
 
 **License:**
 

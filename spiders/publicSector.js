@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer";
+import settings from "../settings.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -19,31 +20,35 @@ export class PublicJobSpider {
    * @param {String} file
    * @returns String: file path
    */
-  #databasePath(file = "none") {
+  #databasePath(file = this.#date("date"), folder = "database") {
     const currentFilePath = fileURLToPath(import.meta.url);
     const directoryPath = path.dirname(currentFilePath);
-    return path.join(directoryPath, "..", "database", `${file}.json`);
+    return path.join(directoryPath, "..", folder, `${file}.json`);
   }
+  /**
+   * @description Set's up puppeteer broswer settings.
+   */
   async launch() {
+    console.log(`"${this.#name}" spider launched.`);
     try {
-      this.browser = await puppeteer.launch({
-        headless: "new",
-        executablePath:
-          "C:\\Program Files (x86)\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
-      });
-      await this.crawl();
+      this.browser = await puppeteer.launch(settings);
+      await this.#crawl();
     } catch (error) {
       console.log(error);
     }
   }
-  async crawl() {
-    console.log(`"${this.#name}" spider initiated & is crawling.`);
+  /**
+   * @description Initiates crawling processes & procedures.
+   */
+  async #crawl() {
+    console.log(`"${this.#name}" spider crawling.`);
     try {
       if (this.browser) {
         const page = await this.browser.newPage();
         // wait 1 minute by default for page.waitNavigation().
         page.setDefaultNavigationTimeout(100000);
         await page.goto(this.#allowedDomains[0]);
+        console.log("loading website to to crawled.");
         const subscriptionModal = await page.$(".modalpop_overlay");
 
         const modalVisible = await subscriptionModal.isIntersectingViewport();
@@ -73,12 +78,13 @@ export class PublicJobSpider {
     } catch (error) {
       console.log(error.message);
       const errors = [
+        "net::ERR_TIMED_OUT at https://www.govpage.co.za/",
         "Node is either not clickable or not an HTMLElement",
         "Navigation timeout of 100000 ms exceeded",
         "Cannot read properties of null (reading 'isIntersectingViewport')",
       ];
       if (errors.includes(error.message)) {
-        console.log(`${this.#name} restarting`);
+        console.log(`"${this.#name}" spider restarting.`);
         console.clear();
         this.browser.close();
         await this.launch();
@@ -90,6 +96,7 @@ export class PublicJobSpider {
    * @description Get's currenly advertised government jobs for the current day.
    */
   async #latestUpdates(page) {
+    console.log("searching for latest government updates.");
     try {
       const updates = async () => {
         if (page.url().includes(this.#allowedDomains[1])) {
@@ -148,9 +155,33 @@ export class PublicJobSpider {
       }, 5000);
     } catch (error) {
       console.log(error.message);
+      const errors = ["Navigation failed because browser has disconnected!"];
+      if (errors.includes(error.message)) {
+        this.browser.close();
+        console.clear();
+      } else if (error.message.icludes("PID")) {
+        fs.writeFile(
+          this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
+          JSON.stringify(
+            {
+              text: error.message,
+              date: this.#date("date"),
+            },
+            null,
+            4
+          ),
+          (error) =>
+            error
+              ? console.log(error.message)
+              : console.log(`${this.#date("date")}.json save to database`)
+        );
+        this.browser.close();
+        console.clear();
+      }
     }
   }
   async #advertLinks(page) {
+    console.log("searching for advert post links.");
     try {
       const advertList = async () => {
         const date = this.#date("date").toLowerCase();
@@ -162,9 +193,12 @@ export class PublicJobSpider {
           };
 
           const elementHandles = await page.$$("[id^='blog-post-'] a");
-          console.log(elementHandles);
+
           if (elementHandles.length) {
             clearInterval(intervalId);
+            console.log(
+              `found some posts, number of detected posts is: ${elementHandles.length}`
+            );
             for (let i = 0; i < elementHandles.length; i++) {
               const elementHandle = elementHandles[i];
 
@@ -186,8 +220,6 @@ export class PublicJobSpider {
                   })();
             }
 
-            console.log(posts);
-
             if (posts.total) {
               fs.writeFile(
                 this.#databasePath(posts.date),
@@ -199,11 +231,15 @@ export class PublicJobSpider {
                         console.log(
                           `Data written to ${posts.date}.json file successfully. `
                         );
-                        console.log(`${this.#name} is disconnected.`);
+                        console.log(`"${this.#name}" spider is disconnected.`);
                         this.browser.close();
                       })()
               );
             }
+          } else {
+            console.log(
+              `still searching for posts as of right now, number of  detected posts is: ${elementHandles.length}`
+            );
           }
         }
       };
@@ -212,6 +248,30 @@ export class PublicJobSpider {
       }, 5000);
     } catch (error) {
       console.log(error.message);
+
+      const errors = ["Navigation failed because browser has disconnected!"];
+      if (errors.includes(error.message)) {
+        console.clear();
+        this.browser.close();
+      } else if (error.message.icludes("PID")) {
+        console.clear();
+        fs.writeFile(
+          this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
+          JSON.stringify(
+            {
+              text: error.message,
+              date: this.#date("date"),
+            },
+            null,
+            4
+          ),
+          (error) =>
+            error
+              ? console.log(error.message)
+              : console.log(`${this.#date("date")}.json save to database`)
+        );
+        this.browser.close();
+      }
     }
   }
   /***
