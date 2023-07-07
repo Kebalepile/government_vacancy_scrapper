@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Kebalepile/government_vacancy_scrapper#readme",
   "dependencies": {
+    "nodemailer": "^6.9.3",
     "puppeteer": "^20.7.4"
   }
 }
