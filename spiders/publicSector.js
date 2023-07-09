@@ -154,30 +154,28 @@ export class PublicJobSpider {
         updates();
       }, 5000);
     } catch (error) {
-      console.log(error.message);
+      // console.log(error.message);
+      this.browser.close();
+      // console.clear();
       const errors = ["Navigation failed because browser has disconnected!"];
-      if (errors.includes(error.message)) {
-        this.browser.close();
-        console.clear();
-      } else if (error.message.icludes("PID")) {
-        fs.writeFile(
-          this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
-          JSON.stringify(
-            {
-              text: error.message,
-              date: this.#date("date"),
-            },
-            null,
-            4
-          ),
-          (error) =>
-            error
-              ? console.log(error.message)
-              : console.log(`${this.#date("date")}.json save to database`)
-        );
-        this.browser.close();
-        console.clear();
-      }
+      // if (error.message.icludes("PID")) {
+      //   fs.writeFile(
+      //     this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
+      //     JSON.stringify(
+      //       {
+      //         text: error.message,
+      //         date: this.#date("date"),
+      //       },
+      //       null,
+      //       4
+      //     ),
+      //     (error) =>
+      //       error
+      //         ? console.log(error.message)
+      //         : console.log(`${this.#date("date")}.json save to database`)
+      //   );
+      
+      // }
     }
   }
   async #advertLinks(page) {

@@ -1,9 +1,11 @@
 import nodemailer from "nodemailer";
-// import { config } from "dotenv";
+import { config } from "dotenv";
 import fs from "fs";
 import path from "path";
-// config("../../.env");
+config("../../.env");
 
+console.log( process.env.EMAIL,
+  process.env.PASSWORD)
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
   port: 587,
@@ -14,6 +16,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// console.log(transporter)
 const subscribers = ["kmotshoana@gmail.com"];
 
 function date(type = "date") {
@@ -40,10 +43,8 @@ function date(type = "date") {
       };
   }
 }
-function queryDatabase(
-  query = date().replaceAll("-", " ").toUpperCase(),
-  callback
-) {
+function queryDatabase(query =date().replaceAll("-", " ").toUpperCase(), callback) {
+  
   const directoryPath = "../../database";
   try {
     fs.readdir(directoryPath, (error, files) => {
@@ -51,8 +52,10 @@ function queryDatabase(
         console.log(`Error reading directory: ${error.message}`);
         return;
       }
-      const matchingFiles = files.filter((file) => file.includes(query));
-
+      const matchingFiles = files.filter((file) =>
+        file.includes(query)
+      );
+     
       matchingFiles.forEach((file) => {
         const filePath = path.join(directoryPath, file);
         fs.readFile(filePath, (err, data) => {
@@ -70,12 +73,14 @@ function queryDatabase(
   }
 }
 export function dailyAlerts() {
+  
   const dailyUpdate = (info) => {
+   
     try {
       if (subscribers.length) {
         for (const subscriber of subscribers) {
           const eMailOptions = {
-            from: `"Bot Alerts" ${process.env.EMAIL}`,
+            from: `"Bot Alerts" ${transporter.auth.user}`,
             to: subscriber,
             subject: "Bot Alerts Daily government job posts.",
             text: "Good Day  Here are to days latest goverment job post updates",
@@ -89,7 +94,7 @@ export function dailyAlerts() {
               )
               .join("")}</ul>`,
           };
-          
+console.log(subscriber)
           transporter.sendMail(eMailOptions, (error, info) => {
             if (error) {
               return console.log(error);
