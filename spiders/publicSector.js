@@ -35,6 +35,8 @@ export class PublicJobSpider {
       await this.#crawl();
     } catch (error) {
       console.log(error);
+    }finally{
+      this.browser.close();
     }
   }
   /**
@@ -154,28 +156,28 @@ export class PublicJobSpider {
         updates();
       }, 5000);
     } catch (error) {
-      // console.log(error.message);
+      console.log(error.message);
       this.browser.close();
       // console.clear();
       const errors = ["Navigation failed because browser has disconnected!"];
-      // if (error.message.icludes("PID")) {
-      //   fs.writeFile(
-      //     this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
-      //     JSON.stringify(
-      //       {
-      //         text: error.message,
-      //         date: this.#date("date"),
-      //       },
-      //       null,
-      //       4
-      //     ),
-      //     (error) =>
-      //       error
-      //         ? console.log(error.message)
-      //         : console.log(`${this.#date("date")}.json save to database`)
-      //   );
+      if (error.message.icludes("PID")) {
+        fs.writeFile(
+          this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
+          JSON.stringify(
+            {
+              text: error.message,
+              date: this.#date("date"),
+            },
+            null,
+            4
+          ),
+          (error) =>
+            error
+              ? console.log(error.message)
+              : console.log(`${this.#date("date")}.json save to database`)
+        );
       
-      // }
+      }
     }
   }
   async #advertLinks(page) {
@@ -230,7 +232,7 @@ export class PublicJobSpider {
                           `Data written to ${posts.date}.json file successfully. `
                         );
                         console.log(`"${this.#name}" spider is disconnected.`);
-                        this.browser.close();
+                       
                       })()
               );
             }
