@@ -35,8 +35,6 @@ export class PublicJobSpider {
       await this.#crawl();
     } catch (error) {
       console.log(error);
-    }finally{
-      this.browser.close();
     }
   }
   /**
@@ -232,6 +230,7 @@ export class PublicJobSpider {
                           `Data written to ${posts.date}.json file successfully. `
                         );
                         console.log(`"${this.#name}" spider is disconnected.`);
+                        this.browser.close()
                        
                       })()
               );
