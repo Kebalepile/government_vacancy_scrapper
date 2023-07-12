@@ -17,6 +17,11 @@ export class PublicJobSpider {
   constructor() {
     this.browser = null;
   }
+  #terminate() {
+    if (this.browser) {
+      this.browser.close();
+    }
+  }
   /**
    * @param {String} file
    * @returns String: file path
@@ -102,7 +107,9 @@ export class PublicJobSpider {
               error
                 ? console.log(error.message)
                 : console.log(
-                    `Error log: ${this.#date("timestamp")}.json save to database`
+                    `Error log: ${this.#date(
+                      "timestamp"
+                    )}.json save to database`
                   )
           );
           console.log(chalk.yellowBright(`"${this.#name}" spider restarting.`));
@@ -253,15 +260,13 @@ export class PublicJobSpider {
                             `Data written to ${posts.date}.json file successfully. `
                           )
                         );
-                        setTimeout(() => {
-                          console.clear();
-                          console.log(
-                            chalk.bgGray(
-                              `"${this.#name}" spider is disconnected.`
-                            )
-                          );
-                        }, 3000);
-                        this.browser.close();
+
+                        console.log(
+                          chalk.bgGray(
+                            `"${this.#name}" spider is disconnected.`
+                          )
+                        );
+                        this.#terminate();
                       })()
               );
             }
@@ -302,7 +307,9 @@ export class PublicJobSpider {
               error
                 ? console.log(error.message)
                 : console.log(
-                    `Error log: ${this.#date("timestamp")}.json save to database`
+                    `Error log: ${this.#date(
+                      "timestamp"
+                    )}.json save to database`
                   )
           );
           console.log(`"${this.#name}" spider restarting.`);
@@ -323,7 +330,9 @@ export class PublicJobSpider {
               error
                 ? console.log(error.message)
                 : console.log(
-                    `Error log: ${this.#date("timestamp")}.json save to database`
+                    `Error log: ${this.#date(
+                      "timestamp"
+                    )}.json save to database`
                   )
           );
         }
