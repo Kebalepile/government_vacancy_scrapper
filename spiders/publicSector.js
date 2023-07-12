@@ -3,6 +3,7 @@ import settings from "../settings.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import chalk from "chalk";
 /**
  * @description scrapes latest jobs advertised in public sector
  * by the Governement.
@@ -29,19 +30,19 @@ export class PublicJobSpider {
    * @description Set's up puppeteer broswer settings.
    */
   async launch() {
-    console.log(`"${this.#name}" spider launched.`);
+    console.log(chalk.bold.magenta(`"${this.#name}" spider launched.`));
     try {
       this.browser = await puppeteer.launch(settings);
       await this.#crawl();
     } catch (error) {
-      console.log(error);
+      console.log(chalk.red(error));
     }
   }
   /**
    * @description Initiates crawling processes & procedures.
    */
   async #crawl() {
-    console.log(`"${this.#name}" spider crawling.`);
+    console.log(chalk.bold.magenta(`"${this.#name}" spider crawling.`));
     try {
       if (this.browser) {
         const page = await this.browser.newPage();
@@ -75,19 +76,39 @@ export class PublicJobSpider {
           await this.#latestUpdates(page);
         }
       }
-    } catch (error) {
-      console.log(error.message);
+    } catch (err) {
+      this.browser.close();
+      // console.log(err.message);
       const errors = [
         "net::ERR_TIMED_OUT at https://www.govpage.co.za/",
         "Node is either not clickable or not an HTMLElement",
         "Navigation timeout of 100000 ms exceeded",
         "Cannot read properties of null (reading 'isIntersectingViewport')",
       ];
-      if (errors.includes(error.message)) {
-        console.log(`"${this.#name}" spider restarting.`);
-        console.clear();
-        this.browser.close();
-        await this.launch();
+
+      for (const error of errors) {
+        if (err.message.includes(error)) {
+          fs.writeFile(
+            this.#databasePath(`Error at ${this.#date("timestamp")}`, "errors"),
+            JSON.stringify(
+              {
+                text: error.message,
+                date: this.#date("date"),
+              },
+              null,
+              4
+            ),
+            (error) =>
+              error
+                ? console.log(error.message)
+                : console.log(
+                    `Error log: ${this.#date("timestamp")}.json save to database`
+                  )
+          );
+          console.log(chalk.yellowBright(`"${this.#name}" spider restarting.`));
+          console.clear();
+          await this.launch();
+        }
       }
     }
   }
@@ -96,7 +117,7 @@ export class PublicJobSpider {
    * @description Get's currenly advertised government jobs for the current day.
    */
   async #latestUpdates(page) {
-    console.log("searching for latest government updates.");
+    console.log(chalk.bold.yellow("searching for latest government updates."));
     try {
       const updates = async () => {
         if (page.url().includes(this.#allowedDomains[1])) {
@@ -153,33 +174,32 @@ export class PublicJobSpider {
       const intervalId = setInterval(() => {
         updates();
       }, 5000);
-    } catch (error) {
-      console.log(error.message);
+    } catch (err) {
+      // console.log(err.message);
       this.browser.close();
-      // console.clear();
-      const errors = ["Navigation failed because browser has disconnected!"];
-      if (error.message.icludes("PID")) {
-        fs.writeFile(
-          this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
-          JSON.stringify(
-            {
-              text: error.message,
-              date: this.#date("date"),
-            },
-            null,
-            4
-          ),
-          (error) =>
-            error
-              ? console.log(error.message)
-              : console.log(`${this.#date("date")}.json save to database`)
-        );
-      
-      }
+
+      console.clear();
+      fs.writeFile(
+        this.#databasePath(`Error at ${this.#date("timestamp")}`, "errors"),
+        JSON.stringify(
+          {
+            text: err.message,
+            date: this.#date("date"),
+          },
+          null,
+          4
+        ),
+        (error) =>
+          error
+            ? console.log(error.message)
+            : console.log(
+                `Error log: ${this.#date("timestamp")}.json save to database`
+              )
+      );
     }
   }
   async #advertLinks(page) {
-    console.log("searching for advert post links.");
+    console.log(chalk.bold.yellow("searching for advert post links."));
     try {
       const advertList = async () => {
         const date = this.#date("date").toLowerCase();
@@ -195,7 +215,9 @@ export class PublicJobSpider {
           if (elementHandles.length) {
             clearInterval(intervalId);
             console.log(
-              `found some posts, number of detected posts is: ${elementHandles.length}`
+              chalk.bold.cyanBright(
+                `found some posts, number of detected posts is: ${elementHandles.length}`
+              )
             );
             for (let i = 0; i < elementHandles.length; i++) {
               const elementHandle = elementHandles[i];
@@ -227,11 +249,19 @@ export class PublicJobSpider {
                     ? console.log(error.message)
                     : (() => {
                         console.log(
-                          `Data written to ${posts.date}.json file successfully. `
+                          chalk.greenBright(
+                            `Data written to ${posts.date}.json file successfully. `
+                          )
                         );
-                        console.log(`"${this.#name}" spider is disconnected.`);
-                        this.browser.close()
-                       
+                        setTimeout(() => {
+                          console.clear();
+                          console.log(
+                            chalk.bgGray(
+                              `"${this.#name}" spider is disconnected.`
+                            )
+                          );
+                        }, 3000);
+                        this.browser.close();
                       })()
               );
             }
@@ -245,31 +275,58 @@ export class PublicJobSpider {
       const intervalId = setInterval(() => {
         advertList();
       }, 5000);
-    } catch (error) {
-      console.log(error.message);
+    } catch (err) {
+      this.browser.close();
+      // console.log(err.message);
 
-      const errors = ["Navigation failed because browser has disconnected!"];
-      if (errors.includes(error.message)) {
-        console.clear();
-        this.browser.close();
-      } else if (error.message.icludes("PID")) {
-        console.clear();
-        fs.writeFile(
-          this.#databasePath(`Error at ${this.#date("time")}`, "errors"),
-          JSON.stringify(
-            {
-              text: error.message,
-              date: this.#date("date"),
-            },
-            null,
-            4
-          ),
-          (error) =>
-            error
-              ? console.log(error.message)
-              : console.log(`${this.#date("date")}.json save to database`)
-        );
-        this.browser.close();
+      const errors = [
+        "Navigation failed because browser has disconnected!",
+        "PID",
+        "Target closed",
+      ];
+      for (const error of errors) {
+        if (err.message.includes(error)) {
+          console.clear();
+
+          fs.writeFile(
+            this.#databasePath(`Error at ${this.#date("timestamp")}`, "errors"),
+            JSON.stringify(
+              {
+                text: error.message,
+                date: this.#date("date"),
+              },
+              null,
+              4
+            ),
+            (error) =>
+              error
+                ? console.log(error.message)
+                : console.log(
+                    `Error log: ${this.#date("timestamp")}.json save to database`
+                  )
+          );
+          console.log(`"${this.#name}" spider restarting.`);
+          console.clear();
+          await this.launch();
+        } else {
+          fs.writeFile(
+            this.#databasePath(`Error at ${this.#date("timestamp")}`, "errors"),
+            JSON.stringify(
+              {
+                text: err.message,
+                date: this.#date("date"),
+              },
+              null,
+              4
+            ),
+            (error) =>
+              error
+                ? console.log(error.message)
+                : console.log(
+                    `Error log: ${this.#date("timestamp")}.json save to database`
+                  )
+          );
+        }
       }
     }
   }
@@ -296,6 +353,11 @@ export class PublicJobSpider {
           return currentDate;
         case "time":
           return currentTime;
+        case "timestamp":
+          return `${year}${pad(month)}${pad(day)}${pad(hour)}${pad(
+            minute
+          )}${pad(second)}`;
+
         default:
           return {
             date: currentDate,
