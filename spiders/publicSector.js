@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import chalk from "chalk";
+
 /**
  * @description scrapes latest jobs advertised in public sector
  * by the Governement.
@@ -16,28 +17,24 @@ export class PublicJobSpider {
   ];
   constructor() {
     this.browser = null;
+    this.page = null;
   }
-  #terminate() {
-    if (this.browser) {
-      this.browser.close();
-    }
-  }
-  /**
-   * @param {String} file
-   * @returns String: file path
-   */
-  #databasePath(file = this.#date("date"), folder = "database") {
-    const currentFilePath = fileURLToPath(import.meta.url);
-    const directoryPath = path.dirname(currentFilePath);
-    return path.join(directoryPath, "..", folder, `${file}.json`);
-  }
+
   /**
    * @description Set's up puppeteer broswer settings.
    */
   async launch() {
     console.log(chalk.bold.magenta(`"${this.#name}" spider launched.`));
     try {
+      /**
+       * @description Browser instance.
+       */
       this.browser = await puppeteer.launch(settings);
+
+      /**
+       * @description Page object.
+       */
+      this.page = await this.browser.newPage();
       await this.#crawl();
     } catch (error) {
       console.log(chalk.red(error));
@@ -49,28 +46,31 @@ export class PublicJobSpider {
   async #crawl() {
     console.log(chalk.bold.magenta(`"${this.#name}" spider crawling.`));
     try {
-      if (this.browser) {
-        const page = await this.browser.newPage();
+      if (this.page) {
         // wait 1 minute by default for page.waitNavigation().
-        page.setDefaultNavigationTimeout(100000);
-        await page.goto(this.#allowedDomains[0]);
+        this.page.setDefaultNavigationTimeout(100000);
+        await this.page.goto(this.#allowedDomains[0]);
         console.log("loading website to to crawled.");
-        const subscriptionModal = await page.$(".modalpop_overlay");
+        const subscriptionModal = await this.page.$(".modalpop_overlay");
 
         const modalVisible = await subscriptionModal.isIntersectingViewport();
+
         if (modalVisible) {
-          const subscriptionModalCloseButton = await page.$(".close_modal");
+          const subscriptionModalCloseButton = await this.page.$(
+            ".close_modal"
+          );
+
           subscriptionModalCloseButton.click();
         }
 
-        const menu = await page.$('*[aria-label="Menu"]');
+        const menu = await this.page.$('*[aria-label="Menu"]');
         menu?.click();
-        const elements = await page.$$(
+        const elements = await this.page.$$(
           "ul li.wsite-menu-item-wrap a.wsite-menu-item"
         );
         let targetElement = null;
         for (const element of elements) {
-          const textContent = await page.evaluate(
+          const textContent = await this.page.evaluate(
             (elem) => elem.textContent.toLowerCase().trim(),
             element
           );
@@ -78,12 +78,12 @@ export class PublicJobSpider {
         }
         if (targetElement) {
           await targetElement.click();
-          await this.#latestUpdates(page);
+          await this.#latestUpdates(this.page);
         }
       }
     } catch (err) {
-      this.browser.close();
-      // console.log(err.message);
+      await this.#terminate();
+
       const errors = [
         "net::ERR_TIMED_OUT at https://www.govpage.co.za/",
         "Node is either not clickable or not an HTMLElement",
@@ -97,7 +97,7 @@ export class PublicJobSpider {
             this.#databasePath(`Error at ${this.#date("timestamp")}`, "errors"),
             JSON.stringify(
               {
-                text: error.message,
+                text: error,
                 date: this.#date("date"),
               },
               null,
@@ -173,7 +173,7 @@ export class PublicJobSpider {
                   ? console.log(error.message)
                   : console.log(`${this.#date("date")}.json save to database`)
             );
-            this.browser.close();
+            await this.#terminate();
           }
         }
       };
@@ -182,8 +182,7 @@ export class PublicJobSpider {
         updates();
       }, 5000);
     } catch (err) {
-      // console.log(err.message);
-      this.browser.close();
+      await this.#terminate();
 
       console.clear();
       fs.writeFile(
@@ -254,25 +253,20 @@ export class PublicJobSpider {
                 (error) =>
                   error
                     ? console.log(error.message)
-                    : (() => {
+                    : (async () => {
                         console.log(
                           chalk.greenBright(
                             `Data written to ${posts.date}.json file successfully. `
                           )
                         );
 
-                        console.log(
-                          chalk.bgGray(
-                            `"${this.#name}" spider is disconnected.`
-                          )
-                        );
-                        this.#terminate();
+                        await this.#terminate();
                       })()
               );
             }
           } else {
             console.log(
-              `still searching for posts as of right now, number of  detected posts is: ${elementHandles.length}`
+              `searching for posts as of right now, number of  detected posts is: ${elementHandles.length}`
             );
           }
         }
@@ -281,8 +275,7 @@ export class PublicJobSpider {
         advertList();
       }, 5000);
     } catch (err) {
-      this.browser.close();
-      // console.log(err.message);
+      await this.#terminate();
 
       const errors = [
         "Navigation failed because browser has disconnected!",
@@ -297,7 +290,7 @@ export class PublicJobSpider {
             this.#databasePath(`Error at ${this.#date("timestamp")}`, "errors"),
             JSON.stringify(
               {
-                text: error.message,
+                text: error,
                 date: this.#date("date"),
               },
               null,
@@ -320,7 +313,7 @@ export class PublicJobSpider {
             this.#databasePath(`Error at ${this.#date("timestamp")}`, "errors"),
             JSON.stringify(
               {
-                text: err.message,
+                text: err,
                 date: this.#date("date"),
               },
               null,
@@ -340,6 +333,29 @@ export class PublicJobSpider {
     }
   }
   /***
+   * @description close Puppeteer Web Scraper.
+   */
+  async #terminate() {
+    try {
+      if (this.browser && this.page) {
+        await this.page.goto("about:blank");
+        await this.browser.close();
+      }
+    } catch (err) {
+      // console.log("Problem : ", err);
+    }
+  }
+  /**
+   * @param {String} file
+   * @returns String: file path
+   */
+  #databasePath(file = this.#date("date"), folder = "database") {
+    const currentFilePath = fileURLToPath(import.meta.url);
+    const directoryPath = path.dirname(currentFilePath);
+    return path.join(directoryPath, "..", folder, `${file}.json`);
+  }
+  /***
+   * @param {string} [type=""]
    * @description Get's  the current date and time.
    * @returns date string
    *
