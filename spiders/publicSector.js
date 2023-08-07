@@ -48,9 +48,10 @@ export class PublicJobSpider {
     try {
       if (this.page) {
         // wait 1 minute by default for page.waitNavigation().
-        this.page.setDefaultNavigationTimeout(100000);
+        this.page.setDefaultNavigationTimeout(200000);
         await this.page.goto(this.#allowedDomains[0]);
         console.log("loading website to to crawled.");
+       
         const subscriptionModal = await this.page.$(".modalpop_overlay");
 
         const modalVisible = await subscriptionModal.isIntersectingViewport();
