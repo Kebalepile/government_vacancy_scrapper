@@ -48,21 +48,21 @@ export class PublicJobSpider {
     try {
       if (this.page) {
         // wait 1 minute by default for page.waitNavigation().
-        this.page.setDefaultNavigationTimeout(200000);
+        this.page.setDefaultNavigationTimeout(100000);
         await this.page.goto(this.#allowedDomains[0]);
         console.log("loading website to to crawled.");
-       
-        const subscriptionModal = await this.page.$(".modalpop_overlay");
+        await this.page.waitForNetworkIdle()
+        // const subscriptionModal = await this.page.$(".modalpop_overlay");
 
-        const modalVisible = await subscriptionModal.isIntersectingViewport();
+        // const modalVisible = await subscriptionModal.isIntersectingViewport();
 
-        if (modalVisible) {
-          const subscriptionModalCloseButton = await this.page.$(
-            ".close_modal"
-          );
+        // if (modalVisible) {
+        //   const subscriptionModalCloseButton = await this.page.$(
+        //     ".close_modal"
+        //   );
 
-          subscriptionModalCloseButton.click();
-        }
+        //   subscriptionModalCloseButton.click();
+        // }
 
         const menu = await this.page.$('*[aria-label="Menu"]');
         menu?.click();
@@ -135,7 +135,7 @@ export class PublicJobSpider {
             .toUpperCase()
             .replaceAll("-", " ");
 
-          page.waitForNavigation();
+        //  await page.waitForNavigation();
 
           const elementHandles = await page.$$(".blog-title-link");
 
