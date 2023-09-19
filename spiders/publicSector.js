@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import chalk from "chalk";
 
+
 /**
  * @description scrapes latest jobs advertised in public sector
  * by the Governement.
